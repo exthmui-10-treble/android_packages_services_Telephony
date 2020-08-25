@@ -111,6 +111,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private final BroadcastReceiver mBootReceiver = new ConfigLoaderBroadcastReceiver();
     // Broadcast receiver for SIM and pkg intents, register intent filter in constructor.
     private final BroadcastReceiver mPackageReceiver = new ConfigLoaderBroadcastReceiver();
+    // Broadcast receiver for Locale intents, register intent filter in construtor.
+    private final BroadcastReceiver mLocaleReceiver = new ConfigLoaderBroadcastReceiver();
     private final LocalLog mCarrierConfigLoadingLog = new LocalLog(50);
 
 
@@ -145,6 +147,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private static final int EVENT_FETCH_CARRIER_TIMEOUT = 15;
     // SubscriptionInfoUpdater has finished updating the sub for the carrier config.
     private static final int EVENT_SUBSCRIPTION_INFO_UPDATED = 16;
+    // Locale / Language changed
+    private static final int EVENT_LOCALE_CHANGED = 17;
 
     private static final int BIND_TIMEOUT_MILLIS = 30000;
 
@@ -209,6 +213,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                     break;
                 }
 
+                case EVENT_LOCALE_CHANGED:
                 case EVENT_PACKAGE_CHANGED:
                 {
                     final String carrierPackageName = (String) msg.obj;
@@ -526,6 +531,10 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         pkgFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
         pkgFilter.addDataScheme("package");
         context.registerReceiverAsUser(mPackageReceiver, UserHandle.ALL, pkgFilter, null, null);
+
+        IntentFilter localeFilter = new IntentFilter();
+        localeFilter.addAction(Intent.ACTION_LOCALE_CHANGED);
+        context.registerReceiverAsUser(mLocaleReceiver, UserHandle.ALL, localeFilter, null, null);
 
         int numPhones = TelephonyManager.from(context).getPhoneCount();
         mConfigFromDefaultApp = new PersistableBundle[numPhones];
@@ -1129,6 +1138,9 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                         mHandler.sendMessage(
                                 mHandler.obtainMessage(EVENT_PACKAGE_CHANGED, packageName));
                     }
+                    break;
+                case Intent.ACTION_LOCALE_CHANGED:
+                    mHandler.sendMessage(mHandler.obtainMessage(EVENT_LOCALE_CHANGED, null));
                     break;
             }
         }
